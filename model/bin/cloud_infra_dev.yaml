@@ -1,0 +1,10 @@
+# see https://cloud.google.com/compute/docs/general-purpose-machines#n1_machines
+# see https://cloud.google.com/ai-platform/training/docs/using-gpus
+trainingInput:
+  scaleTier: CUSTOM
+  masterType: standard_gpu
+  #masterConfig:
+  #  acceleratorConfig:
+  #    count: 1
+  #    type: NVIDIA_TESLA_A100
+  
