@@ -6,9 +6,11 @@ from torch import float32, nn, exp, cuda
 from peft import LoraConfig, PeftModel, PeftConfig, get_peft_model
 
 from transformers import AutoTokenizer, PreTrainedTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, DataCollatorForLanguageModeling
-
+from transformers.models.nat.modeling_nat import NatPatchEmbeddings
 
 # training utils
+
+
 class CastOutputToFloat(nn.Sequential):
     def forward(self, x):
         return super().forward(x).to(float32)
@@ -50,8 +52,7 @@ def compute_perplexity(pred):
 
 # Model
 
-
-class LLMStories():
+class LLMStoriesTrainer():
 
     def __init__(self, model_name: str) -> None:
         self.model_name = model_name
@@ -90,23 +91,65 @@ class LLMStories():
     def evaluate():
         pass
 
-    def generate(self, prompt: str, hf_repo: str, max_new_tokens: int, temperature: float, do_sample: bool) -> None:
-        # Import the model
-        config = PeftConfig.from_pretrained(f"{hf_repo}_model")
+
+class LLMStoryTeller():
+
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
+        self.device = 'cuda' if cuda.is_available() else 'cpu'
+
+        # Load the finetuned model and associated tokenizer
+        config = PeftConfig.from_pretrained(model_name)
         model = AutoModelForCausalLM.from_pretrained(
             config.base_model_name_or_path, return_dict=True, load_in_8bit=True, device_map='auto')
-        tokenizer = AutoTokenizer.from_pretrained(
+        self.tokenizer = AutoTokenizer.from_pretrained(
             config.base_model_name_or_path)
 
         # Load the Lora model
-        self.model = PeftModel.from_pretrained(model, f"{hf_repo}_model")
+        self.model = PeftModel.from_pretrained(model, model_name)
 
-        # Generate text
-        inputs = tokenizer(prompt, return_tensors="pt")
+    def create_sequence(self, prompt: str, temp: float, max_sequence: int, top_k: int, top_p: float):
+        inputs = self.tokenizer(prompt, return_tensors="pt").to('cuda')
+
         tokens = self.model.generate(
             **inputs,
-            max_new_tokens=max_new_tokens,
-            temperature=temperature,
-            do_sample=do_sample,
+            max_new_tokens=max_sequence,
+            temperature=temp,
+            do_sample=True,
+            top_k=top_k,
+            top_p=top_p
         )
-        print(tokenizer.decode(tokens[0]))
+        return tokens
+
+    def generate(self, prompt: str, max_tokens: int, overlap: int = 6, temp: float = 0.6, max_sequence: int = 25, top_k: int = 0, top_p: float = 0.92, debug: bool = False) -> str:
+
+        n = 0
+        seq = []
+
+        # first seq is a special case, it includes the initial prompt ...
+        output = self.create_sequence(prompt, temp, max_sequence, top_k, top_p)
+        seq.append(output[0])
+        tokens = len(output[0])
+
+        if debug:
+            print(
+                f"{n}: {self.tokenizer.decode(output[0], skip_special_tokens=True)}")
+
+        while tokens < max_tokens:
+            n += 1
+            np = self.tokenizer.decode(
+                output[0][(-1*overlap):], skip_special_tokens=True)
+
+            output = self.create_sequence(np, temp, max_sequence, top_k, top_p)
+            seq.append(output[0][:(-1*overlap)])
+            tokens += len(seq[n])
+
+            if debug:
+                print(
+                    f"{n}: {self.tokenizer.decode(seq[n], skip_special_tokens=True)}")
+
+        para = []
+        for s in seq:
+            para += s
+
+        return self.tokenizer.decode(para, skip_special_tokens=True)

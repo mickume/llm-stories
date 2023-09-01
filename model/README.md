@@ -1,3 +1,0 @@
-# llm-stories
-
-Create stories

@@ -1,10 +1,9 @@
 # dataset creation
 datasets
-huggingface_hub
 transformers
 peft
 accelerate
 bitsandbytes
 torch
 scipy
-google-cloud-storage
+numexpr>=2.7.3

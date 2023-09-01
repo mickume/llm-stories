@@ -13,9 +13,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Train an LLM with Lora.")
     # required
-    parser.add_argument("--model-name", type=str, default=config.model_name, help="The name of the model to train.")
+    parser.add_argument("--model-name", type=str, default=config.model_name, help="The name of the base model to train.")
     parser.add_argument("--repo", type=str, help="The name of the HuggingFace repo to push the model to.")
-    parser.add_argument("--token", type=str)
+
     # optional
     parser.add_argument("--mlm", type=bool, default=config.mlm, help="Whether to use MLM or not for the training.")
     parser.add_argument('--lora-r', type=float, default=config.lora_r, help="The Lora parameter r, the number of heads.")
@@ -38,7 +38,6 @@ if __name__ == '__main__':
     parser.add_argument('--push-to-hub', type=bool, default=config.push_to_hub, help="Whether to push the model to the HuggingFace Hub.")
     args = parser.parse_args()
 
-    os.environ['HUGGING_FACE_HUB_TOKEN'] = args.token
 
     lora_config = {
         "r": args.lora_r,
@@ -64,7 +63,7 @@ if __name__ == '__main__':
         "push_to_hub": args.push_to_hub
     }
 
-    model = LLMStories(args.model_name)
+    model = LLMStoriesTrainer(args.model_name)
     model.train(
         hf_repo=args.repo,
         lora_config=lora_config,
