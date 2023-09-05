@@ -8,6 +8,7 @@ from trainer.model import LLMStoriesTrainer
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+# python -m trainer.train --model-name 'bigscience/bloom-3b' --repo 'mickume/harry_potter_tiny'
 
 if __name__ == '__main__':
 
@@ -83,7 +84,9 @@ if __name__ == '__main__':
         "overwrite_output_dir": args.overwrite_output_dir,
         "evaluation_strategy": args.evaluation_strategy,
         "save_strategy": args.save_strategy,
-        "push_to_hub": args.push_to_hub
+        "push_to_hub": args.push_to_hub,
+        "resume_from_checkpoint": args.output_dir,
+        "hub_strategy": checkpoint
     }
 
     # finetune/train the model
